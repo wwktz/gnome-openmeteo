@@ -3,7 +3,7 @@
 # =========================
 
 PKG_NAME ?= gnome-shell-extension-openmeteo
-UUID     ?= openmeteo-extension@wwkchina.github.io
+UUID     ?= openmeteo-extension@wwktz.github.io
 
 BASE_MODULES = metadata.json COPYING AUTHORS
 EXTRA_DIRECTORIES = media

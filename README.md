@@ -64,7 +64,7 @@ First make sure you have the following dependencies installed:
 Run the following commands:
 
 ```shell
-git clone https://github.com/WwkChina/gnome-openmeteo.git
+git clone https://github.com/wwktz/gnome-openmeteo.git
 
 cd gnome-openmeteo
 
