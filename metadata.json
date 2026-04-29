@@ -6,7 +6,8 @@
         "46",
         "47",
         "48",
-        "49"
+        "49",
+        "50"
     ],
     "url": "https://github.com/wwktz/gnome-openmeteo",
     "uuid": "openmeteo-extension@wwktz.github.io",
@@ -15,3 +16,4 @@
     "version": 1,
     "version-name": "1"
 }
+
