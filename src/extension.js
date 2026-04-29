@@ -139,6 +139,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
 
     _init(metadata, settings) {
         super._init(0, "OpenMeteoMenuButton", false);
+        this.menu.box.add_style_class_name('openmeteo');
         this.settings = settings;
         this.metadata = metadata;
         this.gSettings = Gio.Settings.new("org.gnome.desktop.interface");
@@ -237,7 +238,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
                 reactive: false,
             });
             if (this._forecastDays !== 0) {
-                this._forecastExpander = new PopupMenu.PopupSubMenuMenuItem("");
+                this._forecastExpander = new PopupMenu.PopupSubMenuMenuItem("...");
             }
         }
         this._buttonMenu = new PopupMenu.PopupBaseMenuItem({
@@ -245,11 +246,19 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             style_class: "openmeteo-menu-button-container",
         });
         this._selectCity = new PopupMenu.PopupSubMenuMenuItem("");
-        this._selectCity.actor.set_height(0);
-        this._selectCity._triangle.set_height(0);
+        this._selectCity.set_height(0);
+        if (this._selectCity._triangle)
+            this._selectCity._triangle.set_height(0);
 
         this.rebuildCurrentWeatherUi();
-        this.rebuildFutureWeatherUi();
+        try {
+            this.rebuildFutureWeatherUi();
+        } catch (e) {
+            console.error("==== Open-Meteo ERROR START ====");
+            console.error(e);
+            console.error(e.stack);
+            console.error("==== Open-Meteo ERROR END ====");
+        }
         this.rebuildButtonMenu();
         this.rebuildSelectCityItem();
 
@@ -259,6 +268,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             if (this._forecastDays !== 0) {
                 this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
                 this.menu.addMenuItem(this._forecastExpander);
+                this._forecastExpander.menu.open(true);
             }
         }
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
@@ -927,7 +937,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
     }
 
     rebuildButtonMenu() {
-        this._buttonMenu.actor.destroy_all_children();
+        this._buttonMenu.destroy_all_children();
 
         this._buttonBox1 = new St.BoxLayout({
             style_class: "openmeteo-button-box",
@@ -1059,8 +1069,8 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             item.activate = this._onActivate.bind(this, item.location);
         }
 
-        if (cities.length === 1) this._selectCity.actor.hide();
-        else this._selectCity.actor.show();
+        if (cities.length === 1) this._selectCity.hide();
+        else this._selectCity.show();
     }
 
     _onActivate(locIndex) {
@@ -1165,8 +1175,21 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         return `${Math.round(deg)}°`;
     }
 
+    // systemHasIcon(iconName) {
+    //     return new St.IconTheme().has_icon(iconName);
+    // }
+//     systemHasIcon(iconName) {
+//     try {
+//         let theme = St.IconTheme.get_default();
+//         if (!theme) return false;
+//         return theme.has_icon(iconName);
+//     } catch (e) {
+//         log(`Open-Meteo icon error: ${e}`);
+//         return false;
+//     }
+// }
     systemHasIcon(iconName) {
-        return new St.IconTheme().has_icon(iconName);
+        return false;
     }
 
     getPackagedIconName(iconName) {
@@ -1413,9 +1436,9 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
     }
 
     rebuildCurrentWeatherUi() {
-        this._currentWeather.actor.destroy_all_children();
+        this._currentWeather.destroy_all_children();
         if (!this._isForecastDisabled)
-            this._currentForecast.actor.destroy_all_children();
+            this._currentForecast.destroy_all_children();
 
         let a11yClasses = this.getHiConrastClass() ?? "";
 
@@ -1568,7 +1591,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         });
 
         st13AddActors(box, this._currentWeatherIcon, xb);
-        this._currentWeather.actor.add_child(box);
+        this._currentWeather.add_child(box);
 
         // Today's forecast if not disabled by user
         if (this._isForecastDisabled) return;
@@ -1643,7 +1666,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             this._todays_forecast[i] = todaysForecast;
             st13AddActor(this._todaysBox, fb);
         }
-        this._currentForecast.actor.add_child(this._todaysBox);
+        this._currentForecast.add_child(this._todaysBox);
     }
 
     setGustsPanelVisibility(isVisible) {
@@ -1665,18 +1688,37 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
     }
 
     rebuildFutureWeatherUi(cnt) {
-        if (this._isForecastDisabled || this._forecastDays === 0) return;
-        this._forecastExpander.menu.box.destroy_all_children();
+        if (this._forecastExpanderItem) {
+            this._forecastExpanderItem.destroy();
+            this._forecastExpanderItem = null;
+        }
+        this._forecastExpander.menu.removeAll();
+        if (this._forecastExpanderBox) {
+            this._forecastExpanderBox.destroy();
+            this._forecastExpanderBox = null;
+        }
+
+        if (this._isForecastDisabled || this._forecastDays === 0)
+            return;
 
         let a11yClasses = this.getHiConrastClass() ?? "";
-
         this._forecast = [];
         this._forecastExpanderBox = new St.BoxLayout({
             x_expand: true,
-            opacity: 150,
-            style_class: this.cssConcatClass("openmeteo-forecast-expander", a11yClasses),
+            opacity: 255,
+            style_class: this.cssConcatClass(
+                "popup-menu-content openmeteo-forecast-expander",
+                a11yClasses
+            ),
         });
-        st13AddActor(this._forecastExpander.menu.box, this._forecastExpanderBox);
+
+        this._forecastExpanderItem = new PopupMenu.PopupBaseMenuItem({
+            reactive: false,
+            can_focus: false,
+        });
+
+        this._forecastExpanderItem.add_child(this._forecastExpanderBox);
+        this._forecastExpander.menu.addMenuItem(this._forecastExpanderItem);
 
         this._daysBox = new St.BoxLayout({
             vertical: true,
@@ -1692,24 +1734,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             x_expand: true,
             style_class: "openmeteo-forecasts",
         });
-        let pan = new Clutter.PanAction({
-            interpolate: true,
-        });
-        pan.connect("pan", (action) => {
-            let [dist, dx, dy] = action.get_motion_delta(0);
-
-            this.scrollForecastBy(
-                -1 *
-                ((dy + dx) / this._forecastScrollBox.width) *
-                hscroll(this._forecastScrollBox).page_size
-            );
-            return false;
-        });
-        this._forecastScrollBox.add_action(pan);
-        this._forecastScrollBox.connect("scroll-event", this._onScroll.bind(this));
-        this._forecastScrollBox.vscrollbar_policy = St.PolicyType.NEVER;
-        this._forecastScrollBox.hscrollbar_policy = St.PolicyType.AUTOMATIC;
-        this._forecastScrollBox.enable_mouse_scrolling = true;
         this._forecastScrollBox.hide();
 
         if (cnt === undefined) cnt = this._days_forecast;
@@ -1718,7 +1742,8 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         if (cnt === 1) nDayForecast = _("Tomorrow's Forecast");
         else nDayForecast = _("%s Day Forecast").format(cnt);
 
-        this._forecastExpander.label.set_text(nDayForecast);
+        if (this._forecastExpander.label)
+            this._forecastExpander.label.set_text(nDayForecast);
 
         for (let i = 0; i < cnt; i++) {
             let forecastWeather = {};
@@ -1796,6 +1821,8 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             st13AddActor(this._forecastBox, forecastWeatherBox);
         }
 
+        if (this._forecastBox.get_parent())
+            this._forecastBox.get_parent().remove_child(this._forecastBox);
         st13AddActor(this._forecastScrollBox, this._forecastBox);
         st13AddActors(this._forecastExpanderBox, this._daysBox, this._forecastScrollBox);
     }

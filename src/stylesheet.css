@@ -189,3 +189,14 @@
     opacity: 0.75;
     margin-top: 2px;
 }
+.openmeteo StLabel {
+    color: #e6e6e6 !important;
+}
+
+.openmeteo StIcon {
+    icon-opacity: 1 !important;
+}
+
+.openmeteo * {
+    opacity: 1 !important;
+}
