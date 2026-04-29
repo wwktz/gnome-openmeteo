@@ -186,17 +186,6 @@
 /* precipitation text (match forecast summary size) */
 .openmeteo-forecast-precip {
     font-size: 75%;
-    opacity: 0.75;
+    opacity: 0.95;
     margin-top: 2px;
-}
-.openmeteo StLabel {
-    color: #e6e6e6 !important;
-}
-
-.openmeteo StIcon {
-    icon-opacity: 1 !important;
-}
-
-.openmeteo * {
-    opacity: 1 !important;
 }
