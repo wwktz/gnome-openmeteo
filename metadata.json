@@ -13,7 +13,6 @@
     "uuid": "openmeteo-extension@wwktz.github.io",
     "settings-schema": "org.gnome.shell.extensions.openmeteo",
     "gettext-domain": "gnome-shell-extension-openmeteo",
-    "version": 1,
-    "version-name": "1"
+    "version": 1.3,
+    "version-name": "1.3"
 }
-

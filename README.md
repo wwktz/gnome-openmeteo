@@ -28,8 +28,8 @@ The weather provider and external API dependency have been removed, and a substa
 The project is currently in a stable state.  
 Unless major issues arise, no active updates are expected.
 
-The maintainer develops and tests the project against the GNOME version shipped with the latest Ubuntu LTS release, currently GNOME 46.
-Compatibility with other GNOME versions is not guaranteed and depends on community testing and contributions.
+The maintainer develops and tests the project against the GNOME version shipped with the latest Ubuntu LTS release, currently GNOME 50.
+Compatibility with newer GNOME versions is not guaranteed and depends on community testing and contributions.
 
 ---
 
