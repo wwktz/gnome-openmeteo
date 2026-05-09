@@ -1707,7 +1707,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             x_expand: true,
             opacity: 255,
             style_class: this.cssConcatClass(
-                "popup-menu-content openmeteo-forecast-expander",
+                "openmeteo-forecast-expander",
                 a11yClasses
             ),
         });

@@ -90,6 +90,10 @@
 .openmeteo-forecast-expander {
 	padding-right: 15px;
 	padding-left: 15px;
+    background-color: transparent;
+	border: none;
+	box-shadow: none;
+	color: inherit;
 }
 
 .openmeteo-forecast-box {
@@ -188,4 +192,16 @@
     font-size: 75%;
     opacity: 0.95;
     margin-top: 2px;
+}
+.openmeteo-forecast-expander StLabel,
+.openmeteo-forecast-expander StIcon,
+.openmeteo-forecast-box StLabel,
+.openmeteo-forecast-box StIcon {
+	color: inherit;
+}
+
+.popup-sub-menu {
+	background-color: transparent;
+	border: none;
+	box-shadow: none;
 }
