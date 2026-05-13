@@ -44,13 +44,12 @@ import {
     geoclueGetLoc
 } from "./myloc.js"
 
-import { Loc, settingsGetKeys, settingsGetLocs, settingsSetLocs } from "./locs.js";
+import { Loc, settingsGetLocs, settingsSetLocs } from "./locs.js";
 import { tryImportAndMigrate, tryMigrateFromOldVersion } from "./migration.js";
 import {
     getWeatherProviderName,
     getWeatherProviderUrl,
-    getWeatherProvider,
-    DEFAULT_KEYS
+    getWeatherProvider
 } from "./getweather.js";
 
 let _firstBoot = 1;
@@ -65,14 +64,6 @@ function toYYYYMMDD(date) {
     let m = date.getUTCMonth();
     let y = date.getUTCFullYear();
     return `${y}/${m < 10 ? '0' + m : m}/${d < 10 ? '0' + d : d}`;
-}
-
-function hscroll(scrollView) {
-    return scrollView.hadjustment ?? scrollView.hscroll.adjustment;
-}
-
-function vscroll(scrollView) {
-    return scrollView.vadjustment ?? scrollView.vscroll.adjustment;
 }
 
 function st13AddActor(parent, child) {
@@ -226,7 +217,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
     }
 
     initOpenMeteoUI() {
-        this.owmCityId = 0;
         this.useOpenMeteoMap();
         this.checkPositionInPanel();
 
@@ -528,7 +518,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
                     this.initOpenMeteoUI();
                     this.initWeatherData();
                 } else {
-                    this.forecastJsonCache = undefined;
                     this.rebuildFutureWeatherUi();
                     await this.reloadWeatherCache();
                 }
@@ -600,27 +589,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         this.bindSettingsChanged();
     }
 
-    loadConfigInterface() {
-        this._settingsInterfaceC = this.settings.connect("changed", async () => {
-            if (this.settings.get_boolean("frozen")) return;
-
-            try {
-                this.rebuildCurrentWeatherUi();
-                this.rebuildFutureWeatherUi();
-                if (await this.locationChanged()) {
-                    this.rebuildSelectCityItem();
-                    this._clearWeatherCache();
-                    this.initWeatherData();
-                } else {
-                    await this.reloadWeatherCache();
-                }
-            }
-            catch (e) {
-                console.error(`Open-Meteo: Error in settings changed listener '${e}'.\n\t${e.trace}`);
-            }
-        });
-    }
-
     /**
       * @property {(Weather | null)}
       */
@@ -630,7 +598,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         this.currentWeatherCache = undefined;
         this.todaysWeatherCache = undefined;
         this.forecastWeatherCache = undefined;
-        this.forecastJsonCache = undefined;
     }
 
     _onNetworkStateChanged() {
@@ -720,7 +687,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
                 this.forecastWeatherCache = undefined;
                 this.todaysWeatherCache = undefined;
             }
-            this.forecastJsonCache = undefined;
             this.rebuildCurrentWeatherUi();
             this.initWeatherData();
         }
@@ -905,12 +871,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         let s = this.settings.get_int("speed-decimal-places");
         if (s === -1) return this._decimal_places;
         else return s;
-    }
-
-    getWeatherKey() {
-        let keys = settingsGetKeys(this.settings);
-        let selected = keys[this.weatherProvider - 1];
-        return selected ? selected : DEFAULT_KEYS[this.weatherProvider - 1];
     }
 
     createButton(iconName, accessibleName) {
@@ -1175,19 +1135,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         return `${Math.round(deg)}°`;
     }
 
-    // systemHasIcon(iconName) {
-    //     return new St.IconTheme().has_icon(iconName);
-    // }
-//     systemHasIcon(iconName) {
-//     try {
-//         let theme = St.IconTheme.get_default();
-//         if (!theme) return false;
-//         return theme.has_icon(iconName);
-//     } catch (e) {
-//         log(`Open-Meteo icon error: ${e}`);
-//         return false;
-//     }
-// }
     systemHasIcon(iconName) {
         return false;
     }
@@ -1231,21 +1178,17 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         ) {
             st13RemoveActor(this.get_parent(), this);
 
-            let children = null;
             switch (this._position_in_panel) {
                 case WeatherPosition.LEFT:
-                    children = Main.panel._leftBox.get_children();
                     Main.panel._leftBox.insert_child_at_index(this, this._position_index);
                     break;
                 case WeatherPosition.CENTER:
-                    children = Main.panel._centerBox.get_children();
                     Main.panel._centerBox.insert_child_at_index(
                         this,
                         this._position_index
                     );
                     break;
                 case WeatherPosition.RIGHT:
-                    children = Main.panel._rightBox.get_children();
                     Main.panel._rightBox.insert_child_at_index(
                         this,
                         this._position_index
@@ -1682,11 +1625,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         }
     }
 
-    scrollForecastBy(delta) {
-        if (this._forecastScrollBox === undefined) return;
-        hscroll(this._forecastScrollBox).value += delta;
-    }
-
     rebuildFutureWeatherUi(cnt) {
         if (this._forecastExpanderItem) {
             this._forecastExpanderItem.destroy();
@@ -1827,29 +1765,6 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         st13AddActors(this._forecastExpanderBox, this._daysBox, this._forecastScrollBox);
     }
 
-    _onScroll(actor, event) {
-        if (this._isForecastDisabled) return;
-
-        let dx = 0;
-        let dy = 0;
-        switch (event.get_scroll_direction()) {
-            case Clutter.ScrollDirection.UP:
-            case Clutter.ScrollDirection.RIGHT:
-                dy = -1;
-                break;
-            case Clutter.ScrollDirection.DOWN:
-            case Clutter.ScrollDirection.LEFT:
-                dy = 1;
-                break;
-            default:
-                return true;
-        }
-
-        this.scrollForecastBy(
-            dy * hscroll(this._forecastScrollBox).stepIncrement
-        );
-        return false;
-    }
 }
 
 export default class OpenMeteoExtension extends Extension {

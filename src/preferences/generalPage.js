@@ -236,25 +236,6 @@ class GeneralPage extends Adw.PreferencesPage
     unitsGroup.add(simplifyDegRow);
     this.add(unitsGroup);
 
-    let notifGroup = new Adw.PreferencesGroup({
-      title: _("Notifications")
-    });
-
-    let precipStartsNotifSwitch = new Gtk.Switch({
-      valign: Gtk.Align.CENTER,
-      active: this._settings.get_boolean("precip-starts-notif")
-    });
-    let precipStartsNotifRow = new Adw.ActionRow({
-      title: _("Precipitation Starting"),
-      subtitle: _("Get notified when precipitation starts (e.g. rain or snow)."),
-      tooltip_text: _("Get notified when precipitation starts (e.g. rain or snow)."),
-      activatable_widget: precipStartsNotifSwitch
-    });
-    precipStartsNotifRow.add_suffix(precipStartsNotifSwitch);
-
-    notifGroup.add(precipStartsNotifRow);
-    //this.add(notifGroup);
-
     let resetGroup = new Adw.PreferencesGroup({
       title: _("Reset")
     });
@@ -323,9 +304,6 @@ class GeneralPage extends Adw.PreferencesPage
     });
     simplifyDegSwitch.connect("notify::active", (widget) => {
       this._settings.set_boolean("simplify-degrees", widget.get_active());
-    });
-    precipStartsNotifSwitch.connect("notify::active", widget => {
-      this._settings.set_boolean("precip-starts-notif", widget.get_active());
     });
     resetToDefsBtn.connect("clicked", () =>
       {

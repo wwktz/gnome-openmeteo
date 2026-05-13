@@ -14,11 +14,6 @@ import { getSoupSession } from "./myloc.js";
 import { getIconName, gettextCondition } from "./weathericons.js";
 
 /**
-Keep the structure to remain compatible with extension.js
- */
-export const DEFAULT_KEYS = [];
-
-/**
  * @enum {number}
  */
 export const WeatherProvider =
@@ -28,12 +23,6 @@ export const WeatherProvider =
 
   /** Count of usable providers */
   COUNT: 1
-};
-
-export const ForecastDaysSupport =
-{
-  0: 0,
-  1: 8,
 };
 
 export function getWeatherProviderName(prov)
@@ -163,7 +152,6 @@ export class Forecast
 
   getStart() { return this.#start; }
   getEnd() { return this.#end; }
-  getDurationHours() { return (this.#end - this.#start) / 3600000; }
   displayTime(ext) { return ext.formatTime(this.#start); }
   weather() { return this.#weather; }
 }
@@ -326,4 +314,3 @@ export async function getWeatherInfo(extension, gettext)
     null
   );
 }
-
