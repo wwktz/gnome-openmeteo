@@ -13,6 +13,20 @@ import GLib from "gi://GLib";
 import { getLocationInfo, getCachedLocInfo } from "./myloc.js";
 import { WeatherProvider } from "./getweather.js";
 
+const _debugLogging = GLib.getenv("OPENMETEO_DEBUG") === "1";
+
+function debugWarn(message) {
+  if (_debugLogging) console.warn(message);
+}
+
+function debugError(error) {
+  if (_debugLogging) console.error(error);
+}
+
+function debugTrace(message) {
+  if (_debugLogging) console.trace(message);
+}
+
 export const NAME_TYPE = {
   CUSTOM: 0,
   MY_LOC: 1
@@ -45,32 +59,32 @@ export class Loc
     if(typeof nameType !== "number")
     {
       error = true;
-      console.error(`Open-Meteo: NameType (${nameType}) not a number.`);
+      debugError(`Open-Meteo: NameType (${nameType}) not a number.`);
     }
     this.#nameType = nameType;
 
     if(typeof name !== "string")
     {
       error = true;
-      console.error(`Open-Meteo: Name (${name}) not a string.`);
+      debugError(`Open-Meteo: Name (${name}) not a string.`);
     }
     this.#name = name;
 
     if(typeof placeType !== "number")
     {
       error = true;
-      console.error(`Open-Meteo: PlaceType (${placeType}) not a number.`);
+      debugError(`Open-Meteo: PlaceType (${placeType}) not a number.`);
     }
     this.#placeType = placeType;
 
     if(typeof place !== "string")
     {
       error = true;
-      console.error(`Open-Meteo: Place (${place}) not a string.`);
+      debugError(`Open-Meteo: Place (${place}) not a string.`);
     }
     this.#place = place;
 
-    if(error) console.trace("Open-Meteo: Loc ctor backtrace");
+    if(error) debugTrace("Open-Meteo: Loc ctor backtrace");
   }
 
   /**
@@ -81,8 +95,8 @@ export class Loc
   {
     if(gettext === undefined)
     {
-      console.error("Open-Meteo: Loc#getName did not receive a gettext argument. Pass 'null' for no gettext.");
-      console.trace("Open-Meteo backtrace");
+      debugError("Open-Meteo: Loc#getName did not receive a gettext argument. Pass 'null' for no gettext.");
+      debugTrace("Open-Meteo backtrace");
     }
 
     switch(this.#nameType)
@@ -92,7 +106,7 @@ export class Loc
       case NAME_TYPE.MY_LOC:
         return gettext ? gettext("My Location") : "My Location";
       default:
-        console.warn(`Open-Meteo: Invalid name type (${this.#nameType}).`);
+        debugWarn(`Open-Meteo: Invalid name type (${this.#nameType}).`);
         return null;
     }
   }
@@ -125,7 +139,7 @@ export class Loc
         }
         catch(e)
         {
-          console.error(e);
+          debugError(e);
           if(!settings) return [ 0.0, 0.0 ];
           let locs = settingsGetLocs(settings);
           for(let l of locs)
@@ -135,7 +149,7 @@ export class Loc
           return [ 0.0, 0.0 ];
         }
       default:
-        console.warn(`Open-Meteo: Invalid place type (${this.#placeType}).`);
+        debugWarn(`Open-Meteo: Invalid place type (${this.#placeType}).`);
         return null;
     }
   }
@@ -155,7 +169,7 @@ export class Loc
         info = getCachedLocInfo();
         return info ? [ 0, 0 ] : [ info.lat, info.lon ];
       default:
-        console.warn(`Open-Meteo: Invalid place type (${this.#placeType}).`);
+        debugWarn(`Open-Meteo: Invalid place type (${this.#placeType}).`);
         return null;
     }
   }
@@ -164,7 +178,7 @@ export class Loc
   {
     if(gettext === undefined)
     {
-      console.error("Open-Meteo: Loc#getPlaceDisplay did not receive a gettext argument. Pass 'null' for no gettext.");
+      debugError("Open-Meteo: Loc#getPlaceDisplay did not receive a gettext argument. Pass 'null' for no gettext.");
     }
 
     let coords;
@@ -176,7 +190,7 @@ export class Loc
       case PLACE_TYPE.MY_LOC:
         return gettext ? gettext("My Location") : "My Location";
       default:
-        console.warn(`Open-Meteo: Invalid place type (${this.#placeType}).`);
+        debugWarn(`Open-Meteo: Invalid place type (${this.#placeType}).`);
         return null;
     }
   }
@@ -261,7 +275,7 @@ function fromLocsGVariant(val)
     let tupleCount = tuple.n_children();
     if(tupleCount !== 4)
     {
-      console.error(`Open-Meteo: 'locs' tuple of count ${tupleCount}, not 4.`);
+      debugError(`Open-Meteo: 'locs' tuple of count ${tupleCount}, not 4.`);
       return [ ];
     }
 

@@ -58,6 +58,19 @@ let _timeCacheForecastWeather;
 let _isFirstRun = null;
 let _freezeSettingsChanged = false;
 let _systemClockFormat = 1;
+const _debugLogging = GLib.getenv("OPENMETEO_DEBUG") === "1";
+
+function debugLog(message) {
+    if (_debugLogging) console.log(message);
+}
+
+function debugWarn(message) {
+    if (_debugLogging) console.warn(message);
+}
+
+function debugError(error) {
+    if (_debugLogging) console.error(error);
+}
 
 function toYYYYMMDD(date) {
     let d = date.getUTCDate();
@@ -128,11 +141,12 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         topBox.add_child(this.topBoxSunInfo);
     }
 
-    _init(metadata, settings) {
+    _init(extension, settings) {
         super._init(0, "OpenMeteoMenuButton", false);
         this.menu.box.add_style_class_name('openmeteo');
+        this.extension = extension;
         this.settings = settings;
-        this.metadata = metadata;
+        this.metadata = extension.metadata;
         this.gSettings = Gio.Settings.new("org.gnome.desktop.interface");
 
         // Putting the panel item together
@@ -173,7 +187,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
                 this._onNetworkStateChanged.bind(this)
             );
 
-            this.menu.connect("open-state-changed", this.recalcLayout.bind(this));
+            this._menuOpenStateChangedId = this.menu.connect("open-state-changed", this.recalcLayout.bind(this));
 
             let _firstBootWait = this._startupDelay;
             if (_firstBoot && _firstBootWait !== 0) {
@@ -190,8 +204,8 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
                             this._timeoutFirstBoot = null;
                         }
                         catch (e) {
-                            console.log("Open-Meteo: Error in first boot timeout.");
-                            console.error(e);
+                            debugLog("Open-Meteo: Error in first boot timeout.");
+                            debugError(e);
                         }
                         return false; // run timer once then destroy
                     }
@@ -203,13 +217,13 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
                     this.initOpenMeteoUI();
                 }
                 catch (e) {
-                    console.log("Open-Meteo: Error in immediate first boot.");
-                    console.error(e);
+                    debugLog("Open-Meteo: Error in immediate first boot.");
+                    debugError(e);
                 }
             }
         }, (e) => {
-            console.error(`Open-Meteo: Error '${e}' in loadConfig.`);
-            console.error(e);
+            debugError(`Open-Meteo: Error '${e}' in loadConfig.`);
+            debugError(e);
             Main.notify("Open-Meteo", _("Failed to initialize."));
             let now = new Date();
             this.settings.set_string("last-init-error", `(${toYYYYMMDD(now)}) ${e}`);
@@ -244,10 +258,10 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         try {
             this.rebuildFutureWeatherUi();
         } catch (e) {
-            console.error("==== Open-Meteo ERROR START ====");
-            console.error(e);
-            console.error(e.stack);
-            console.error("==== Open-Meteo ERROR END ====");
+            debugError("==== Open-Meteo ERROR START ====");
+            debugError(e);
+            debugError(e.stack);
+            debugError("==== Open-Meteo ERROR END ====");
         }
         this.rebuildButtonMenu();
         this.rebuildSelectCityItem();
@@ -305,6 +319,13 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         if (this._network_monitor_connection) {
             this._network_monitor.disconnect(this._network_monitor_connection);
             this._network_monitor_connection = undefined;
+        }
+
+        this._disconnectButtonSignals();
+
+        if (this._menuOpenStateChangedId) {
+            this.menu.disconnect(this._menuOpenStateChangedId);
+            this._menuOpenStateChangedId = undefined;
         }
 
         if (this._settingsC) {
@@ -396,7 +417,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
                     await geoclueGetLoc(false);
                 }
                 catch (e) {
-                    console.warn(`Open-Meteo: Geoclue failed ('${e}'); changing provider to ipinfo.io.`);
+                    debugWarn(`Open-Meteo: Geoclue failed ('${e}'); changing provider to ipinfo.io.`);
                     this.settings.set_enum("my-loc-prov", MyLocProv.INFOIPIO);
                 }
             }
@@ -457,7 +478,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             await this.firstRunSetDefaults();
         }
         catch (e) {
-            console.error(`Open-Meteo: Error '${e}' in firstRunSetDefaults.`);
+            debugError(`Open-Meteo: Error '${e}' in firstRunSetDefaults.`);
             throw e;
         }
 
@@ -541,7 +562,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             await this.reloadWeatherCache();
         }
         catch (e) {
-            console.error(e);
+            debugError(e);
             throw e;
         }
     }
@@ -551,8 +572,8 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             await this.settingsHandler();
         }
         catch (e) {
-            console.log("Open-Meteo Error in settings listener.");
-            console.error(e);
+            debugLog("Open-Meteo Error in settings listener.");
+            debugError(e);
         }
     }
 
@@ -650,7 +671,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
                     );
                 } catch (err) {
                     let title = _("Can not connect to %s").format(url);
-                    console.warn(title + "\n" + err.message);
+                    debugWarn(title + "\n" + err.message);
                     this._checkConnectionStateRetry();
                 }
                 return false;
@@ -665,7 +686,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             let title = _("Can not connect to %s").format(
                 getWeatherProviderUrl(this.weatherProvider)
             );
-            console.warn(title + "\n" + err.message);
+            debugWarn(title + "\n" + err.message);
             this._checkConnectionStateRetry();
             return;
         }
@@ -730,7 +751,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
     get _actual_city() {
         let i = this.settings.get_int("actual-city");
         if (i > this._cities.length - 1) {
-            console.warn("Open-Meteo: Got actual city too high.");
+            debugWarn("Open-Meteo: Got actual city too high.");
             i = this._cities.length - 1;
         }
 
@@ -753,7 +774,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
 
     set _actual_city(i) {
         if (i > this._cities.length - 1) {
-            console.warn("Open-Meteo: Set actual city too high.");
+            debugWarn("Open-Meteo: Set actual city too high.");
             i = this._cities.length;
         }
 
@@ -892,11 +913,44 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         return button;
     }
 
+    _disconnectButtonSignals() {
+        if (this._locationButtonClickId) {
+            this._locationButton.disconnect(this._locationButtonClickId);
+            this._locationButtonClickId = undefined;
+        }
+
+        if (this._reloadButtonClickId) {
+            this._reloadButton.disconnect(this._reloadButtonClickId);
+            this._reloadButtonClickId = undefined;
+        }
+
+        if (this._provUrlButtonClickId) {
+            this._provUrlButton.disconnect(this._provUrlButtonClickId);
+            this._provUrlButtonClickId = undefined;
+        }
+
+        if (this._nominatimBtnClickId) {
+            this._nominatimBtn.disconnect(this._nominatimBtnClickId);
+            this._nominatimBtnClickId = undefined;
+        }
+
+        if (this._seeOnlineUrlBtnClickId) {
+            this._seeOnlineUrlBtn.disconnect(this._seeOnlineUrlBtnClickId);
+            this._seeOnlineUrlBtnClickId = undefined;
+        }
+
+        if (this._prefsButtonClickId) {
+            this._prefsButton.disconnect(this._prefsButtonClickId);
+            this._prefsButtonClickId = undefined;
+        }
+    }
+
     usesNominatim() {
         return this._city.isMyLoc() && this.settings.get_enum("my-loc-prov") === MyLocProv.GEOCLUE;
     }
 
     rebuildButtonMenu() {
+        this._disconnectButtonSignals();
         this._buttonMenu.destroy_all_children();
 
         this._buttonBox1 = new St.BoxLayout({
@@ -953,10 +1007,10 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             this._prefsButton,
         );
 
-        this._locationButton.connect("clicked", () => {
+        this._locationButtonClickId = this._locationButton.connect("clicked", () => {
             this._selectCity._setOpenState(!this._selectCity._getOpenState());
         });
-        this._reloadButton.connect("clicked", () => {
+        this._reloadButtonClickId = this._reloadButton.connect("clicked", () => {
             if (this._lastRefresh) {
                 let _twoMinsAgo = Date.now() - new Date(0).setMinutes(2.0);
                 if (this._lastRefresh > _twoMinsAgo) {
@@ -970,24 +1024,24 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             this.showRefreshing();
             this.initWeatherData(true);
         });
-        this._provUrlButton.connect("clicked", () => {
+        this._provUrlButtonClickId = this._provUrlButton.connect("clicked", () => {
             this.menu.close();
             let url = getWeatherProviderUrl(this.weatherProvider);
             this.openUrl(url);
         });
         if (this.usesNominatim()) {
-            this._nominatimBtn.connect("clicked", () => {
+            this._nominatimBtnClickId = this._nominatimBtn.connect("clicked", () => {
                 this.menu.close();
                 this.openUrl("https://nominatim.org/");
             });
         }
-        this._seeOnlineUrlBtn.connect("clicked", async () => {
+        this._seeOnlineUrlBtnClickId = this._seeOnlineUrlBtn.connect("clicked", async () => {
             this.menu.close();
             let c = await this._city.getCoords(this.settings);
             let url = `https://weather.com/weather/today/l/${c[0]},${c[1]}`;
             this.openUrl(url);
         });
-        this._prefsButton.connect(
+        this._prefsButtonClickId = this._prefsButton.connect(
             "clicked",
             this._onPreferencesActivate.bind(this)
         );
@@ -1039,10 +1093,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
 
     _onPreferencesActivate() {
         this.menu.close();
-        let extensionObject = Extension.lookupByUUID(
-            "openmeteo-extension@wwktz.github.io"
-        );
-        extensionObject.openPreferences();
+        this.extension.openPreferences();
         return 0;
     }
 
@@ -1087,7 +1138,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             case WeatherUnits.KELVIN:
                 return _("K");
             default:
-                console.warn("Open-Meteo: Invalid tempeature unit.");
+                debugWarn("Open-Meteo: Invalid tempeature unit.");
                 return "\u00B0";
         }
     }
@@ -1156,7 +1207,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
         let file = Gio.File.new_for_path(name);
         if (!file.query_exists(null)) {
             name = iconName;
-            if (noSystemIcon) console.warn(`No icon packaged or on system for ${iconName}.`);
+            if (noSystemIcon) debugWarn(`No icon packaged or on system for ${iconName}.`);
         }
 
         return Gio.icon_new_for_string(name);
@@ -1334,7 +1385,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
                 isHr12 = true;
                 break;
             default:
-                console.warn("Open-Meteo invalid clock format.");
+                debugWarn("Open-Meteo invalid clock format.");
             // FALL THRU
             case ClockFormat.SYSTEM:
                 isHr12 = _systemClockFormat === ClockFormat._12H;
@@ -1358,7 +1409,7 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
             GLib.PRIORITY_DEFAULT,
             interval,
             () => {
-                this.refreshWeatherData().catch((e) => console.error(e));
+                this.refreshWeatherData().catch((e) => debugError(e));
 
                 let intervalSetting = this._refresh_interval_current;
                 if (intervalSetting !== interval) this.reloadWeatherCurrent(intervalSetting);
@@ -1769,16 +1820,14 @@ class OpenMeteoMenuButton extends PanelMenu.Button {
 
 export default class OpenMeteoExtension extends Extension {
     enable() {
-        console.log(`enabling ${this.metadata.name}`);
         this.openMeteoMenu = new OpenMeteoMenuButton(
-            this.metadata,
+            this,
             this.getSettings()
         );
         Main.panel.addToStatusArea("openMeteoMenu", this.openMeteoMenu);
     }
 
     disable() {
-        console.log(`disabling ${this.metadata.name}`);
         this.openMeteoMenu.stop();
         this.openMeteoMenu.destroy();
         this.openMeteoMenu = null;

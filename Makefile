@@ -94,7 +94,7 @@ _build: check schemas/gschemas.compiled $(MSGMO) \
 	cp -r $(EXTRA_DIRECTORIES) _build
 
 	mkdir -p _build/schemas
-	cp $(SCHEMA_XML) schemas/gschemas.compiled _build/schemas
+	cp $(SCHEMA_XML) _build/schemas
 
 	mkdir -p _build/locale
 	for l in $(MSGMO); do \
@@ -114,6 +114,7 @@ install: _build
 	rm -rf $(INSTALLBASE)/$(UUID)
 	mkdir -p $(INSTALLBASE)/$(UUID)
 	cp -r _build/* $(INSTALLBASE)/$(UUID)
+	glib-compile-schemas --strict $(INSTALLBASE)/$(UUID)/schemas/
 
 ifeq ($(INSTALLTYPE),system)
 	rm -rf \

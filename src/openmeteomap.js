@@ -9,9 +9,20 @@
 
 */
 import { gettext as _ } from "resource:///org/gnome/shell/extensions/extension.js";
+import GLib from "gi://GLib";
 
 import { getCachedLocInfo, getLocationInfo } from "./myloc.js";
 import { getWeatherInfo} from "./getweather.js";
+
+const _debugLogging = GLib.getenv("OPENMETEO_DEBUG") === "1";
+
+function debugWarn(message) {
+  if (_debugLogging) console.warn(message);
+}
+
+function debugError(error) {
+  if (_debugLogging) console.error(error);
+}
 
 async function initWeatherData(refresh) {
   if (refresh) {
@@ -28,11 +39,11 @@ async function initWeatherData(refresh) {
         this.recalcLayout();
 
       } catch (e) {
-        console.error(e);
+        debugError(e);
       }
     });
   } catch (e) {
-    console.error(e);
+    debugError(e);
   }
 }
 
@@ -50,7 +61,7 @@ async function reloadWeatherCache()
   }
   catch (e)
   {
-    console.error(e);
+    debugError(e);
   }
 }
 
@@ -65,14 +76,14 @@ async function refreshWeatherData()
     }
     catch (e)
     {
-      console.error(e);
+      debugError(e);
       this.reloadWeatherCurrent(600);
       return;
     }
 
     if(!weather)
     {
-      console.warn("Open-Meteo: getWeatherInfo failed without an error.");
+      debugWarn("Open-Meteo: getWeatherInfo failed without an error.");
       // Try reloading after 10 minutes
       this.reloadWeatherCurrent(600);
       return;
@@ -87,8 +98,8 @@ async function refreshWeatherData()
   }
   catch(e)
   {
-    console.error(`Open-Meteo: ${e}`);
-    console.log(e.stack);
+    debugError(`Open-Meteo: ${e}`);
+    debugError(e.stack);
   }
 }
 
